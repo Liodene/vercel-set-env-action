@@ -86,6 +86,8 @@ export default class VercelEnvVariabler {
                 }
             }
         }
+
+        info(`Env keys ${Object.keys(this.existingEnvVariables)}`);
     }
 
     public async processEnvVariables(): Promise<void> {

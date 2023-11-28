@@ -22,7 +22,7 @@ export default class VercelEnvVariabler {
     private vercelClient: AxiosInstance;
 
     private existingEnvVariables: Record<
-        VercelEnvVariableTarget,
+        string,
         Record<string, VercelEnvVariable>
     > = { production: {}, preview: {}, development: {} };
 
@@ -57,6 +57,10 @@ export default class VercelEnvVariabler {
         });
     }
 
+    private getTargetKey(target: VercelEnvVariableTarget, gitBranch?: string) {
+        return gitBranch ? `${target}-${gitBranch}` : target;
+    }
+
     public async populateExistingEnvVariables(): Promise<void> {
         const envResponse = await listEnvVariables(
             this.vercelClient,
@@ -69,9 +73,13 @@ export default class VercelEnvVariabler {
 
             for (const existingEnvVariable of env) {
                 for (const existingTarget of existingEnvVariable.target) {
+                    const mapKey = this.getTargetKey(
+                        existingTarget,
+                        existingEnvVariable.gitBranch
+                    );
                     const preExistingVariablesForTarget =
-                        this.existingEnvVariables[existingTarget] ?? {};
-                    this.existingEnvVariables[existingTarget] = {
+                        this.existingEnvVariables[mapKey] ?? {};
+                    this.existingEnvVariables[mapKey] = {
                         ...preExistingVariablesForTarget,
                         [existingEnvVariable.key]: existingEnvVariable,
                     };
@@ -95,16 +103,18 @@ export default class VercelEnvVariabler {
         } = this.parseAndValidateEnvVariable(envVariableKey);
 
         const existingVariables = targets.reduce((result, target) => {
-            const existingVariable = this.existingEnvVariables?.[target]?.[
+            const mapKey = this.getTargetKey(target, gitBranch);
+
+            const existingVariable = this.existingEnvVariables?.[mapKey]?.[
                 envVariableKey
             ];
 
             if (existingVariable && existingVariable.gitBranch === gitBranch) {
-                result[target] = existingVariable;
+                result[mapKey] = existingVariable;
             }
 
             return result;
-        }, {} as Record<VercelEnvVariableTarget, VercelEnvVariable>);
+        }, {} as Record<string, VercelEnvVariable>);
 
         const existingTargets = Object.keys(existingVariables);
         if (existingTargets.length === 0) {

@@ -22,7 +22,7 @@ async function run(): Promise<void> {
         await envVariabler.processEnvVariables();
         info("Vercel env variables completed successfully");
     } catch (error) {
-        setFailed(error.message);
+        setFailed((error as Error).message);
     }
 }
 
